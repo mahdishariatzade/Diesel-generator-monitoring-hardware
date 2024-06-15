@@ -27,7 +27,6 @@
 
 #define SAMPLE_BUFFER_LENGTH        256
 #define SAMPLE_BUFFER_LENGTH_HALF   (SAMPLE_BUFFER_LENGTH/2)
-
 #define CURRENT_1 ADC_CHANNEL_0
 #define CURRENT_2 ADC_CHANNEL_1
 #define CURRENT_3 ADC_CHANNEL_2
@@ -41,7 +40,10 @@
 
 #define FlashAddress 0x80000000
 #define approximation 1e-5
-
+// fft
+#define fftElementSendCount 50
+#define  instantaneousElementSendCount 32
+#define data_unit_size 7 // xxx.xx,
 
 /* USER CODE END PD */
 
@@ -61,14 +63,12 @@ UART_HandleTypeDef huart4;
 /* USER CODE BEGIN PV */
 int elementNumber = 0;
 
-#define FFT_harmonic_send 50
-#define every_fft_chars 7 // xxx.xx,
-
 //c1
 struct adcValue {
-    float values[SAMPLE_BUFFER_LENGTH];
+    float instantaneousValues[SAMPLE_BUFFER_LENGTH];
+    char instantaneousValuesCharArray[SAMPLE_BUFFER_LENGTH];
     float fft[SAMPLE_BUFFER_LENGTH_HALF];
-    char fft_char_array[(FFT_harmonic_send * every_fft_chars) + 2]; // [fft_array]
+    char fft_char_array[(fftElementSendCount * data_unit_size) + 2]; // [fft_array]
     float rms;
     float thd;
 };
@@ -79,7 +79,16 @@ struct adcValue v1;
 struct adcValue v2;
 struct adcValue v3;
 
+int number = 132;
+float val = 923.456;
+float RxVal;
 
+uint8_t Rx_data[30] = {0};
+uint8_t MESSAGE_LEN = sizeof(Rx_data);
+bool new_request = false;
+
+float fft_output[SAMPLE_BUFFER_LENGTH];
+uint8_t ifftFlag = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -101,9 +110,7 @@ static void MX_UART4_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-int number = 132;
-float val = 923.456;
-float RxVal;
+
 
 //struct alarm{
 //	int enable=0;
@@ -127,9 +134,7 @@ void delay_us(uint16_t us) {
 
 // serial
 
-uint8_t Rx_data[30] = {0};
-uint8_t MESSAGE_LEN = sizeof(Rx_data);
-bool new_request = false;
+
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     HAL_UART_Receive_IT(&huart4, Rx_data, MESSAGE_LEN);
@@ -145,18 +150,66 @@ bool str_cmp_rx_data(char str2[]) {
     return true;
 }
 
-void floatArrToList(char *dest, float *numbers, int array_size) {
-    char temp[array_size * 7];
+
+void floatArrToList(char *dest, float *numbers, int array_size, int step) {
     char tempStr[9] = {"\0"};
     int usedLength = 0;
     int tempLength = 0;
-    memset(dest, '\0', sizeof(dest));
-    for (int i = 0; i < array_size; i++) {
+    for (int i = 0; i < array_size; i += step) {
         tempLength = sprintf(tempStr, "%.2f,", numbers[i]);
         sprintf(dest + usedLength, "%s", tempStr);
         usedLength = usedLength + tempLength;
     }
     dest[usedLength - 1] = '\0';
+}
+
+void floatArrToListInstantaneousValues() {
+    floatArrToList(c1.instantaneousValuesCharArray, c1.instantaneousValues, SAMPLE_BUFFER_LENGTH,
+                   SAMPLE_BUFFER_LENGTH / instantaneousElementSendCount);
+    floatArrToList(c2.instantaneousValuesCharArray, c2.instantaneousValues, SAMPLE_BUFFER_LENGTH,
+                   SAMPLE_BUFFER_LENGTH / instantaneousElementSendCount);
+    floatArrToList(c3.instantaneousValuesCharArray, c3.instantaneousValues, SAMPLE_BUFFER_LENGTH,
+                   SAMPLE_BUFFER_LENGTH / instantaneousElementSendCount);
+    floatArrToList(v1.instantaneousValuesCharArray, v1.instantaneousValues, SAMPLE_BUFFER_LENGTH,
+                   SAMPLE_BUFFER_LENGTH / instantaneousElementSendCount);
+    floatArrToList(v2.instantaneousValuesCharArray, v2.instantaneousValues, SAMPLE_BUFFER_LENGTH,
+                   SAMPLE_BUFFER_LENGTH / instantaneousElementSendCount);
+    floatArrToList(v3.instantaneousValuesCharArray, v3.instantaneousValues, SAMPLE_BUFFER_LENGTH,
+                   SAMPLE_BUFFER_LENGTH / instantaneousElementSendCount);
+}
+
+void floatArrToListFft() {
+    floatArrToList(c1.fft_char_array, c1.fft, fftElementSendCount, 1);
+    floatArrToList(c2.fft_char_array, c2.fft, fftElementSendCount, 1);
+    floatArrToList(c3.fft_char_array, c3.fft, fftElementSendCount, 1);
+    floatArrToList(v1.fft_char_array, v1.fft, fftElementSendCount, 1);
+    floatArrToList(v2.fft_char_array, v2.fft, fftElementSendCount, 1);
+    floatArrToList(v3.fft_char_array, v3.fft, fftElementSendCount, 1);
+}
+
+void sendRealTimeData() {
+    char buffer[5000] = {'\0'};
+    char *fromat = "{"
+                          "\"type\":\"RealTimeData\","
+                          "\"current\":"
+                          "{\"a\":[%s],"
+                          "\"b\":[%s],"
+                          "\"c\":[%s]},"
+                          "\"voltage\":"
+                          "{\"a\":[%s],"
+                          "\"b\":[%s],"
+                          "\"c\":[%s]}"
+                          "}\r\n\n";
+    snprintf(buffer, sizeof(buffer), fromat,
+             c1.instantaneousValuesCharArray,
+             c2.instantaneousValuesCharArray,
+             c3.instantaneousValuesCharArray,
+             v1.instantaneousValuesCharArray,
+             v2.instantaneousValuesCharArray,
+             v3.instantaneousValuesCharArray
+    );
+    HAL_UART_Transmit(&huart4, buffer, sizeof(buffer), 1000);
+
 }
 
 static void send_serial() {
@@ -167,23 +220,24 @@ static void send_serial() {
         strcpy(buffer, "pong\r\n");
     } else if (str_cmp_rx_data("send_data")) {
         static char *fromat = "{"
+                              "\"type\":\"calculatedData\","
                               "\"current\":"
-                              "{\"a\":{\"rms\":%.2f,\"fft\":[%s]},"
-                              "\"b\":{\"rms\":%.2f,\"fft\":[%s]},"
-                              "\"c\":{\"rms\":%.2f,\"fft\":[%s]}},"
+                              "{\"a\":{\"rms\":%.2f,\"thd\":%.2f,\"fft\":[%s]},"
+                              "\"b\":{\"rms\":%.2f,\"thd\":%.2f,\"fft\":[%s]},"
+                              "\"c\":{\"rms\":%.2f,\"thd\":%.2f,\"fft\":[%s]}},"
                               "\"voltage\":"
-                              "{\"a\":{\"rms\":%.2f,\"fft\":[%s]},"
-                              "\"b\":{\"rms\":%.2f,\"fft\":[%s]},"
-                              "\"c\":{\"rms\":%.2f,\"fft\":[%s]}}"
+                              "{\"a\":{\"rms\":%.2f,\"thd\":%.2f,\"fft\":[%s]},"
+                              "\"b\":{\"rms\":%.2f,\"thd\":%.2f,\"fft\":[%s]},"
+                              "\"c\":{\"rms\":%.2f,\"thd\":%.2f,\"fft\":[%s]}}"
                               "}\r\n\n";
-        int ret = snprintf(buffer, sizeof(buffer), fromat,
-                /*value-rms-fft*/
-                           c1.rms, c1.fft_char_array,
-                           c2.rms, c2.fft_char_array,
-                           c3.rms, c3.fft_char_array,
-                           v1.rms, v1.fft_char_array,
-                           v2.rms, v2.fft_char_array,
-                           v3.rms, v3.fft_char_array);
+        snprintf(buffer, sizeof(buffer), fromat,
+                /*rms-thd-fft*/
+                 c1.rms, c1.thd, c1.fft_char_array,
+                 c2.rms, c2.thd, c2.fft_char_array,
+                 c3.rms, c3.thd, c3.fft_char_array,
+                 v1.rms, v1.thd, v1.fft_char_array,
+                 v2.rms, v2.thd, v2.fft_char_array,
+                 v3.rms, v3.thd, v3.fft_char_array);
     } else {
         strcpy(buffer, "request not found\r\n");
     }
@@ -218,12 +272,12 @@ void getAdcValue(uint32_t ch, float *element) {
 }
 
 void getAdcValues() {
-    getAdcValue(CURRENT_1, &c1.values[elementNumber]);
-    getAdcValue(CURRENT_2, &c2.values[elementNumber]);
-    getAdcValue(CURRENT_3, &c3.values[elementNumber]);
-    getAdcValue(VOLTAGE_1, &v1.values[elementNumber]);
-    getAdcValue(VOLTAGE_2, &v2.values[elementNumber]);
-    getAdcValue(VOLTAGE_3, &v3.values[elementNumber]);
+    getAdcValue(CURRENT_1, &c1.instantaneousValues[elementNumber]);
+    getAdcValue(CURRENT_2, &c2.instantaneousValues[elementNumber]);
+    getAdcValue(CURRENT_3, &c3.instantaneousValues[elementNumber]);
+    getAdcValue(VOLTAGE_1, &v1.instantaneousValues[elementNumber]);
+    getAdcValue(VOLTAGE_2, &v2.instantaneousValues[elementNumber]);
+    getAdcValue(VOLTAGE_3, &v3.instantaneousValues[elementNumber]);
     elementNumber++;
     if (elementNumber >= SAMPLE_BUFFER_LENGTH) {
         HAL_TIM_Base_Stop_IT(&htim2);
@@ -237,9 +291,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 }
 
 // calculation
-float fft_output[SAMPLE_BUFFER_LENGTH];
-uint8_t ifftFlag = 0;
-
 void doFft(float input[], float output[]) {
     arm_status status;
     arm_rfft_fast_instance_f32 fft;
@@ -262,21 +313,21 @@ float doThd(float input[]) {
 
 void calculation() {
     // rms
-    arm_rms_f32(c1.values, SAMPLE_BUFFER_LENGTH, &c1.rms);
-    arm_rms_f32(c2.values, SAMPLE_BUFFER_LENGTH, &c2.rms);
-    arm_rms_f32(c3.values, SAMPLE_BUFFER_LENGTH, &c3.rms);
+    arm_rms_f32(c1.instantaneousValues, SAMPLE_BUFFER_LENGTH, &c1.rms);
+    arm_rms_f32(c2.instantaneousValues, SAMPLE_BUFFER_LENGTH, &c2.rms);
+    arm_rms_f32(c3.instantaneousValues, SAMPLE_BUFFER_LENGTH, &c3.rms);
 
-    arm_rms_f32(v1.values, SAMPLE_BUFFER_LENGTH, &v1.rms);
-    arm_rms_f32(v2.values, SAMPLE_BUFFER_LENGTH, &v2.rms);
-    arm_rms_f32(v3.values, SAMPLE_BUFFER_LENGTH, &v3.rms);
+    arm_rms_f32(v1.instantaneousValues, SAMPLE_BUFFER_LENGTH, &v1.rms);
+    arm_rms_f32(v2.instantaneousValues, SAMPLE_BUFFER_LENGTH, &v2.rms);
+    arm_rms_f32(v3.instantaneousValues, SAMPLE_BUFFER_LENGTH, &v3.rms);
     // fft
-    doFft(c1.values, c1.fft);
-    doFft(c2.values, c2.fft);
-    doFft(c3.values, c3.fft);
+    doFft(c1.instantaneousValues, c1.fft);
+    doFft(c2.instantaneousValues, c2.fft);
+    doFft(c3.instantaneousValues, c3.fft);
 
-    doFft(v1.values, v1.fft);
-    doFft(v2.values, v2.fft);
-    doFft(v3.values, v3.fft);
+    doFft(v1.instantaneousValues, v1.fft);
+    doFft(v2.instantaneousValues, v2.fft);
+    doFft(v3.instantaneousValues, v3.fft);
     // thd
     c1.thd = doThd(c1.fft);
     c2.thd = doThd(c2.fft);
@@ -341,13 +392,11 @@ int main(void) {
 
         /* USER CODE BEGIN 3 */
         HAL_UART_Receive_IT(&huart4, Rx_data, MESSAGE_LEN);
+        floatArrToListInstantaneousValues();
+        sendRealTimeData();
         calculation();
-        floatArrToList(c1.fft_char_array, c1.fft, FFT_harmonic_send);
-        floatArrToList(c2.fft_char_array, c2.fft, FFT_harmonic_send);
-        floatArrToList(c3.fft_char_array, c3.fft, FFT_harmonic_send);
-        floatArrToList(v1.fft_char_array, v1.fft, FFT_harmonic_send);
-        floatArrToList(v2.fft_char_array, v2.fft, FFT_harmonic_send);
-        floatArrToList(v3.fft_char_array, v3.fft, FFT_harmonic_send);
+        floatArrToListFft();
+
         if (new_request) {
             send_serial();
         }
