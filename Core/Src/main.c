@@ -205,11 +205,8 @@ void sendRealTimeData() {
 
 static void send_serial() {
     static uint8_t buffer[5000] = {'\0'};
-    float pi = 3.14159;
     memset(buffer, ' ', sizeof(buffer));
-    if (str_cmp_rx_data("ping")) {
-        strcpy(buffer, "pong\r\n");
-    } else if (str_cmp_rx_data("send_data")) {
+    if (str_cmp_rx_data("send_data")) {
         static char *fromat = "{"
                               "\"type\":\"calculatedData\","
                               "\"current\":"
@@ -220,7 +217,7 @@ static void send_serial() {
                               "{\"a\":{\"rms\":%.2f,\"thd\":%.2f,\"fft\":[%s]},"
                               "\"b\":{\"rms\":%.2f,\"thd\":%.2f,\"fft\":[%s]},"
                               "\"c\":{\"rms\":%.2f,\"thd\":%.2f,\"fft\":[%s]}}"
-                              "}\r\n\n";
+                              "}\r\n";
         snprintf(buffer, sizeof(buffer), fromat,
                 /*rms-thd-fft*/
                  c1.rms, c1.thd, c1.fft_char_array,
@@ -229,8 +226,14 @@ static void send_serial() {
                  v1.rms, v1.thd, v1.fft_char_array,
                  v2.rms, v2.thd, v2.fft_char_array,
                  v3.rms, v3.thd, v3.fft_char_array);
+    } else if (str_cmp_rx_data("saveSettings")) {
+        stringToArrayReceivedSettings();
+        writeParamsToMemory();
+        strcpy(buffer, "OK\r\n");
+    } else if (str_cmp_rx_data("ping")) {
+        strcpy(buffer, "pong\r\n");
     } else {
-        strcpy(buffer, "request not found\r\n");
+        strcpy(buffer, "404\r\n");
     }
 
     HAL_UART_Transmit(&huart4, buffer, sizeof(buffer), 1000);
@@ -300,6 +303,7 @@ float doThd(float input[]) {
         temp = temp + (pow(input[i], 2));
     }
     temp = sqrt(temp) * 100 / input[1];
+    return temp;
 }
 
 void calculation() {
