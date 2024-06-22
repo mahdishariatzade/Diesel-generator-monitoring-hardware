@@ -401,7 +401,6 @@ int main(void) {
     MX_UART4_Init();
     /* USER CODE BEGIN 2 */
     //start timer,uart and interupts
-
     HAL_UART_Receive_IT(&huart4, Rx_data, MESSAGE_LEN);
     readParamsFromMemory();
     HAL_TIM_Base_Start(&htim1);
