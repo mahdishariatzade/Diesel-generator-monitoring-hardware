@@ -26,7 +26,7 @@
 /* USER CODE BEGIN PD */
 #define ARM_MATH_CM4
 
-#define SAMPLE_BUFFER_LENGTH        256
+#define SAMPLE_BUFFER_LENGTH        64
 #define SAMPLE_BUFFER_LENGTH_HALF   (SAMPLE_BUFFER_LENGTH/2)
 #define CURRENT_1 ADC_CHANNEL_0
 #define CURRENT_2 ADC_CHANNEL_1
@@ -319,7 +319,7 @@ void doFft(float input[], float output[]) {
     arm_rfft_fast_f32(&fft, input, fft_output, ifftFlag);
     arm_cmplx_mag_f32(fft_output, output, SAMPLE_BUFFER_LENGTH_HALF);
     for (int i = 0; i < SAMPLE_BUFFER_LENGTH_HALF; i++) {
-        output[i] = output[i] / 128;
+        output[i] = output[i] / SAMPLE_BUFFER_LENGTH_HALF;
         if (output[i] < approximation)output[i] = 0;
     }
 }
