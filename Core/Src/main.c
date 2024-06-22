@@ -62,6 +62,7 @@ ADC_HandleTypeDef hadc1;
 
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim4;
 
 UART_HandleTypeDef huart4;
 
@@ -119,6 +120,8 @@ static void MX_TIM1_Init(void);
 static void MX_TIM2_Init(void);
 
 static void MX_UART4_Init(void);
+
+static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -290,7 +293,6 @@ void getAdcValue(uint32_t ch, float *element) {
 }
 
 void getAdcValues() {
-    time1 = HAL_GetTick();
     getAdcValue(CURRENT_1, &c1.instantaneousValues[elementNumber]);
     getAdcValue(CURRENT_2, &c2.instantaneousValues[elementNumber]);
     getAdcValue(CURRENT_3, &c3.instantaneousValues[elementNumber]);
@@ -302,8 +304,6 @@ void getAdcValues() {
         HAL_TIM_Base_Stop_IT(&htim2);
         elementNumber = 0;
     }
-    time2 = HAL_GetTick();
-    result = time2 - time1;
 }
 
 //timer
@@ -404,6 +404,7 @@ int main(void) {
     MX_TIM1_Init();
     MX_TIM2_Init();
     MX_UART4_Init();
+    MX_TIM4_Init();
     /* USER CODE BEGIN 2 */
     //start timer,uart and interupts
     HAL_UART_Receive_IT(&huart4, Rx_data, MESSAGE_LEN);
@@ -420,8 +421,13 @@ int main(void) {
 
         /* USER CODE BEGIN 3 */
         HAL_UART_Receive_IT(&huart4, Rx_data, MESSAGE_LEN);
+        TIM4->CNT=0;
+        HAL_TIM_Base_Start(&htim4);
+        time1 = __HAL_TIM_GET_COUNTER(&htim4);
         floatArrToListInstantaneousValues();
         sendRealTimeData();
+        time2 = __HAL_TIM_GET_COUNTER(&htim4);
+        result = time2 - time1;
 //        time1=HAL_GetTick();
         calculation();
         control();
@@ -611,6 +617,47 @@ static void MX_TIM2_Init(void) {
     /* USER CODE BEGIN TIM2_Init 2 */
 
     /* USER CODE END TIM2_Init 2 */
+
+}
+
+/**
+  * @brief TIM4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM4_Init(void) {
+
+    /* USER CODE BEGIN TIM4_Init 0 */
+
+    /* USER CODE END TIM4_Init 0 */
+
+    TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+    TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+    /* USER CODE BEGIN TIM4_Init 1 */
+
+    /* USER CODE END TIM4_Init 1 */
+    htim4.Instance = TIM4;
+    htim4.Init.Prescaler = 168;
+    htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim4.Init.Period = 65535;
+    htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    if (HAL_TIM_Base_Init(&htim4) != HAL_OK) {
+        Error_Handler();
+    }
+    sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+    if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK) {
+        Error_Handler();
+    }
+    sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+    if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK) {
+        Error_Handler();
+    }
+    /* USER CODE BEGIN TIM4_Init 2 */
+
+    /* USER CODE END TIM4_Init 2 */
 
 }
 
