@@ -318,13 +318,12 @@ void doFft(float input[], float output[]) {
     }
 }
 
-float doThd(float input[]) {
+void doThd(float input[], float output) {
     float temp = 0;
     for (int i = 2; i < SAMPLE_BUFFER_LENGTH_HALF; i++) {
         temp = temp + (pow(input[i], 2));
     }
-    temp = sqrt(temp) * 100 / input[1];
-    return temp;
+    output = sqrt(temp) * 100 / input[1];
 }
 
 void calculation() {
@@ -345,13 +344,13 @@ void calculation() {
     doFft(v2.instantaneousValues, v2.fft);
     doFft(v3.instantaneousValues, v3.fft);
     // thd
-    c1.thd = doThd(c1.fft);
-    c2.thd = doThd(c2.fft);
-    c3.thd = doThd(c3.fft);
+    doThd(c1.fft, c1.thd);
+    doThd(c2.fft, c2.thd);
+    doThd(c3.fft, c3.thd);
 
-    v1.thd = doThd(v1.fft);
-    v2.thd = doThd(v2.fft);
-    v3.thd = doThd(v3.fft);
+    doThd(v1.fft, v1.thd);
+    doThd(v2.fft, v2.thd);
+    doThd(v3.fft, v3.thd);
 }
 
 void currentRmsControl() {}
