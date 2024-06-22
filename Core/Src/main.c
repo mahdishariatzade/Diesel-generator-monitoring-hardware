@@ -116,9 +116,6 @@ static void MX_UART4_Init(void);
 
 
 //utils
-void load_params() {
-    RxVal = Flash_Read_NUM(0x080FAEC0);
-    RxVal = Flash_Read_NUM(0x080FAED0);
 void readParamsFromMemory() {
     for (int i = 0; i < 100; ++i) {
         settings[i] = Flash_Read_NUM(FlashAddress + (i * 0x32));
