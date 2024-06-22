@@ -38,12 +38,16 @@
 #define TEMP ADC_CHANNEL_6
 #define ERTEASH ADC_CHANNEL_7
 
-#define FlashAddress 0x80000000
 #define approximation 1e-5
 // fft
 #define fftElementSendCount 50
 #define  instantaneousElementSendCount 32
 #define data_unit_size 7 // xxx.xx,
+
+
+#define FlashAddress 0x80000000
+#define ratedVoltageAddress  FlashAddress+(0x32)
+#define ratedCurrentAddress FlashAddress+(2*0x32)
 
 /* USER CODE END PD */
 
@@ -337,6 +341,10 @@ void calculation() {
     v2.thd = doThd(v2.fft);
     v3.thd = doThd(v3.fft);
 }
+void control(){
+
+}
+
 
 /* USER CODE END 0 */
 
@@ -382,7 +390,7 @@ int main(void) {
     HAL_TIM_Base_Start(&htim1);
     HAL_TIM_Base_Start_IT(&htim2);
 
-
+uint32_t time1,time2,resul;
     /* USER CODE END 2 */
 
     /* Infinite loop */
@@ -394,8 +402,12 @@ int main(void) {
         HAL_UART_Receive_IT(&huart4, Rx_data, MESSAGE_LEN);
         floatArrToListInstantaneousValues();
         sendRealTimeData();
+//        time1=HAL_GetTick();
         calculation();
+        control();
         floatArrToListFft();
+//        time2=HAL_GetTick();
+//        resul=time2-time1;
 
         if (new_request) {
             send_serial();
