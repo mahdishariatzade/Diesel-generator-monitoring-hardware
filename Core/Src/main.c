@@ -382,13 +382,11 @@ int main(void) {
     //start timer,uart and interupts
 
     HAL_UART_Receive_IT(&huart4, Rx_data, MESSAGE_LEN);
-    load_params();
-    Flash_Write_NUM(0x080FAEC0, number);
-    Flash_Write_NUM(0x080FAED0, val);
+    readParamsFromMemory();
     HAL_TIM_Base_Start(&htim1);
     HAL_TIM_Base_Start_IT(&htim2);
 
-uint32_t time1,time2,resul;
+    uint32_t time1, time2, result;
     /* USER CODE END 2 */
 
     /* Infinite loop */
@@ -405,7 +403,7 @@ uint32_t time1,time2,resul;
         control();
         floatArrToListFft();
 //        time2=HAL_GetTick();
-//        resul=time2-time1;
+//        result=time2-time1;
 
         if (new_request) {
             send_serial();
