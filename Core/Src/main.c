@@ -411,7 +411,6 @@ int main(void) {
     HAL_TIM_Base_Start(&htim1);
     HAL_TIM_Base_Start_IT(&htim2);
 
-    uint32_t time1, time2, result;
     /* USER CODE END 2 */
 
     /* Infinite loop */
