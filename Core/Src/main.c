@@ -115,31 +115,13 @@ static void MX_UART4_Init(void);
 /* USER CODE BEGIN 0 */
 
 
-
-//struct alarm{
-//	int enable=0;
-//	float allowable_value=0;
-//	int harmonic=0;
-//	float threshold=0;
-//};
-
 //utils
 void load_params() {
     RxVal = Flash_Read_NUM(0x080FAEC0);
     RxVal = Flash_Read_NUM(0x080FAED0);
 }
 
-void delay_us(uint16_t us) {
-    __HAL_TIM_SET_COUNTER(&htim1, 0);  // set the counter value a 0
-    while (__HAL_TIM_GET_COUNTER(&htim1) < us);  // wait for the counter to reach the us input in the parameter
-}
-
-
-
 // serial
-
-
-
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     HAL_UART_Receive_IT(&huart4, Rx_data, MESSAGE_LEN);
     new_request = true;
