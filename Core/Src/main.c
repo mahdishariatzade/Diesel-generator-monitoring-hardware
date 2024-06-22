@@ -76,16 +76,25 @@ struct adcValue {
     float rms;
     float thd;
 };
-struct adcValue c1;
-struct adcValue c2;
-struct adcValue c3;
-struct adcValue v1;
-struct adcValue v2;
-struct adcValue v3;
 
-int number = 132;
-float val = 923.456;
-float RxVal;
+struct errorsStruct {
+    bool voltageRmsError;
+    int voltageRmsTimeout;
+
+
+    bool currentRmsError;
+    int currentRmsTimeout;
+
+    bool voltageHarmonicOverLimit;
+    char errorPhase[2];
+} errors;
+struct errorsStruct errors = {false, 0,
+                              false, 0,
+                              false};
+
+struct adcValue c1, c2, c3, v1, v2, v3;
+
+float settings[100];
 
 uint8_t Rx_data[30] = {0};
 uint8_t MESSAGE_LEN = sizeof(Rx_data);
