@@ -45,9 +45,9 @@
 #define data_unit_size 7 // xxx.xx,
 
 
-#define FlashAddress 0x80000000
-#define ratedVoltageAddress  FlashAddress+(0x32)
-#define ratedCurrentAddress FlashAddress+(2*0x32)
+#define FlashAddress 0x080FAEC0
+#define ratedVoltageAddress  FlashAddress+(0*0x32)
+#define ratedCurrentAddress FlashAddress+(1*0x32)
 
 /* USER CODE END PD */
 
