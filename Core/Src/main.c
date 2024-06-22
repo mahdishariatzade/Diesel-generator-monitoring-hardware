@@ -14,6 +14,7 @@
 #include <stdbool.h>
 #include "FLASH_SECTOR_F4.h"
 #include "stdio.h"
+#include <stdlib.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -67,7 +68,6 @@ UART_HandleTypeDef huart4;
 /* USER CODE BEGIN PV */
 int elementNumber = 0;
 
-//c1
 struct adcValue {
     float instantaneousValues[SAMPLE_BUFFER_LENGTH];
     char instantaneousValuesCharArray[SAMPLE_BUFFER_LENGTH];
