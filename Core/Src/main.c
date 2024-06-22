@@ -136,8 +136,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 bool str_cmp_rx_data(char str2[]) {
     int size = sizeof(str2);
     for (int i = 0; i < size; i++) {
-        if (Rx_data[i] == str2[i]) {}
-        else { return false; };
+        if (Rx_data[i] != str2[i]) { return false; };
     }
     return true;
 }
@@ -146,7 +145,7 @@ bool str_cmp_rx_data(char str2[]) {
 void floatArrToList(char *dest, float *numbers, int array_size, int step) {
     char tempStr[9] = {"\0"};
     int usedLength = 0;
-    int tempLength = 0;
+    int tempLength;
     for (int i = 0; i < array_size; i += step) {
         tempLength = sprintf(tempStr, "%.2f,", numbers[i]);
         sprintf(dest + usedLength, "%s", tempStr);
