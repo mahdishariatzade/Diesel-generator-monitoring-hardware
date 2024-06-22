@@ -332,7 +332,14 @@ void calculation() {
     v2.thd = doThd(v2.fft);
     v3.thd = doThd(v3.fft);
 }
-void control(){
+
+void currentRmsControl() {}
+
+void voltageRmsControl() {}
+
+void voltageHarmonicControl() {}
+
+void control() {
 
 }
 
