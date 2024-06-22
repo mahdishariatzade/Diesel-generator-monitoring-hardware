@@ -102,6 +102,9 @@ bool new_request = false;
 
 float fft_output[SAMPLE_BUFFER_LENGTH];
 uint8_t ifftFlag = 0;
+
+uint32_t time1, time2, result;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -287,6 +290,7 @@ void getAdcValue(uint32_t ch, float *element) {
 }
 
 void getAdcValues() {
+    time1 = HAL_GetTick();
     getAdcValue(CURRENT_1, &c1.instantaneousValues[elementNumber]);
     getAdcValue(CURRENT_2, &c2.instantaneousValues[elementNumber]);
     getAdcValue(CURRENT_3, &c3.instantaneousValues[elementNumber]);
@@ -298,6 +302,8 @@ void getAdcValues() {
         HAL_TIM_Base_Stop_IT(&htim2);
         elementNumber = 0;
     }
+    time2 = HAL_GetTick();
+    result = time2 - time1;
 }
 
 //timer
