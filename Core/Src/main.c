@@ -187,19 +187,31 @@ void floatArrToListFft() {
     floatArrToList(v3.fft_char_array, v3.fft, fftElementSendCount, 1);
 }
 
+void stringToArrayReceivedSettings() {
+
+    char *token = strtok(Rx_data, ","); //remove saveSettings
+    token = strtok(NULL, ","); // number1 ...
+    int i = 0;
+    while (token[i] != NULL) {
+        settings[i] = atof(token);
+        token = strtok(NULL, ",");
+        i++;
+    }
+}
+
 void sendRealTimeData() {
     char buffer[5000] = {'\0'};
     char *fromat = "{"
-                          "\"type\":\"RealTimeData\","
-                          "\"current\":"
-                          "{\"a\":[%s],"
-                          "\"b\":[%s],"
-                          "\"c\":[%s]},"
-                          "\"voltage\":"
-                          "{\"a\":[%s],"
-                          "\"b\":[%s],"
-                          "\"c\":[%s]}"
-                          "}\r\n\n";
+                   "\"type\":\"RealTimeData\","
+                   "\"current\":"
+                   "{\"a\":[%s],"
+                   "\"b\":[%s],"
+                   "\"c\":[%s]},"
+                   "\"voltage\":"
+                   "{\"a\":[%s],"
+                   "\"b\":[%s],"
+                   "\"c\":[%s]}"
+                   "}\r\n";
     snprintf(buffer, sizeof(buffer), fromat,
              c1.instantaneousValuesCharArray,
              c2.instantaneousValuesCharArray,
