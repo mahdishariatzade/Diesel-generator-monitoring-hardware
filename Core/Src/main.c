@@ -376,7 +376,9 @@ void voltageRmsControl() {}
 void voltageHarmonicControl() {}
 
 void control() {
-
+    voltageRmsControl();
+    currentRmsControl();
+    voltageHarmonicControl();
 }
 
 
